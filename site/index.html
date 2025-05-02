@@ -8,8 +8,8 @@
 </head>
 
 <body class="bg-neutral-900 text-neutral-50 font-mono">
-  <main class="flex flex-col min-h-screen items-center justify-center p-4">
-    <h1 class="text-3xl font-semibold mb-4">Name That Psalm</h1>
+  <main class="flex flex-col min-h-screen p-4">
+    <h1 class="text-3xl text-left font-semibold mb-4">Name That Psalm</h1>
 
     <div id="verse-container" class="bg-neutral-50 text-neutral-900 p-6 rounded shadow max-w-xl w-full text-center">
       <p id="verse" class="text-xl italic mb-6">Loading...</p>
@@ -17,14 +17,14 @@
       <p id="feedback" class="mt-4 font-bold"></p>
     </div>
 
-    <button onclick="toggleStats()" class="mt-4 text-sm underline">Toggle Stats</button>
+    <button onclick="toggleStats()" class="mt-4 text-sm underline">Show Stats</button>
   </main>
 
   <!-- Stats Modal -->
   <div id="statsModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
     <div class="bg-neutral-800 text-neutral-100 p-6 rounded-lg max-w-md w-full shadow-lg relative">
       <button onclick="toggleStats()" class="absolute top-2 right-2 text-neutral-400 hover:text-white text-lg">&times;</button>
-      <h2 class="text-xl font-semibold mb-4">Your Psalm Stats</h2>
+      <h2 class="text-xl font-semibold mb-4">Stats</h2>
       <div id="statsContent" class="text-sm space-y-2 mb-4"></div>
       <div class="flex justify-end">
         <button onclick="shareStats()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">
