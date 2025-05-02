@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Name That Psalm</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="static/images/favicon.ico">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-neutral-900 text-neutral-50 font-mono">
+  <main class="flex flex-col min-h-screen items-center justify-center p-4">
+    <h1 class="text-3xl font-semibold mb-4">Name That Psalm</h1>
+
+    <div id="verse-container" class="bg-neutral-50 text-neutral-900 p-6 rounded shadow max-w-xl w-full text-center">
+      <p id="verse" class="text-xl italic mb-6">Loading...</p>
+      <div id="options" class="flex flex-col gap-2"></div>
+      <p id="feedback" class="mt-4 font-bold"></p>
+    </div>
+
+    <button onclick="toggleStats()" class="mt-4 text-sm underline">Toggle Stats</button>
+  </main>
+
+  <!-- Stats Modal -->
+  <div id="statsModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+    <div class="bg-neutral-800 text-neutral-100 p-6 rounded-lg max-w-md w-full shadow-lg relative">
+      <button onclick="toggleStats()" class="absolute top-2 right-2 text-neutral-400 hover:text-white text-lg">&times;</button>
+      <h2 class="text-xl font-semibold mb-4">Your Psalm Stats</h2>
+      <div id="statsContent" class="text-sm space-y-2 mb-4"></div>
+      <div class="flex justify-end">
+        <button onclick="shareStats()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">
+          Share Stats
+        </button>
+      </div>
+      <p id="shareStatus" class="text-xs text-neutral-400 mt-2"></p>
+    </div>
+  </div>
+
+  <script>
+    const statsKey = "psalm_game_stats";
+    let verses = [];
+    let todayKey = new Date().toISOString().split("T")[0];
+    let shareText = "";
+
+    function getStats() {
+      return JSON.parse(localStorage.getItem(statsKey)) || {
+        correct: 0,
+        streak: 0,
+        lastPlayed: "",
+        totalDays: 0,
+        picks: {},
+        correctByPsalm: {},
+        wrongGuesses: {}
+      };
+    }
+
+    function saveStats(stats) {
+      localStorage.setItem(statsKey, JSON.stringify(stats));
+    }
+
+    function toggleStats() {
+      const modal = document.getElementById("statsModal");
+      const isVisible = !modal.classList.contains("hidden");
+      if (isVisible) {
+        modal.classList.add("hidden");
+      } else {
+        updateStatsPanel();
+        modal.classList.remove("hidden");
+      }
+    }
+
+    function updateStatsPanel() {
+      const s = getStats();
+      let bestPsalm = null;
+      let bestScore = -1;
+      let leastPsalm = null;
+      let worstScore = -1;
+      let hasCorrect = false;
+      let hasWrong = false;
+
+      const allChapters = new Set([
+        ...Object.keys(s.picks),
+        ...Object.keys(s.correctByPsalm),
+        ...Object.keys(s.wrongGuesses),
+      ].map(Number));
+
+      allChapters.forEach(ch => {
+        const correct = s.correctByPsalm[ch] || 0;
+        const picked = s.picks[ch] || 0;
+        const wrongAsChoice = s.wrongGuesses[ch] || 0;
+        const missed = picked - correct + wrongAsChoice;
+
+        if (correct > 0) {
+          hasCorrect = true;
+          if (correct > bestScore) {
+            bestScore = correct;
+            bestPsalm = ch;
+          }
+        }
+
+        if (picked - correct > 0 || wrongAsChoice > 0) {
+          hasWrong = true;
+          if (missed > worstScore) {
+            worstScore = missed;
+            leastPsalm = ch;
+          }
+        }
+      });
+
+      const url = window.location.href;
+      shareText = `Name That Psalm Stats\n` +
+                  `Correct: ${s.correct}\n` +
+                  `Streak: ${s.streak}\n` +
+                  `Days Played: ${s.totalDays || 0}\n` +
+                  `Best Known: ${hasCorrect ? `Psalm ${bestPsalm}` : 'N/A'}\n` +
+                  `Least Known: ${hasWrong ? `Psalm ${leastPsalm}` : 'N/A'}\n` +
+                  `Play now: ${url}`;
+
+      const content = document.getElementById("statsContent");
+      content.innerHTML = `
+        <p><strong>Total Correct:</strong> ${s.correct}</p>
+        <p><strong>Current Streak:</strong> ${s.streak}</p>
+        <p><strong>Total Days Played:</strong> ${s.totalDays || 0}</p>
+        <p><strong>Best Known Psalm:</strong> ${hasCorrect ? `Psalm ${bestPsalm} (${bestScore} correct)` : "N/A"}</p>
+        <p><strong>Least Known Psalm:</strong> ${hasWrong ? `Psalm ${leastPsalm}` : "N/A"}</p>
+      `;
+      document.getElementById("shareStatus").textContent = "";
+    }
+
+    function shareStats() {
+      const status = document.getElementById("shareStatus");
+
+      if (navigator.share) {
+        navigator.share({
+          title: "Name That Psalm",
+          text: shareText,
+          url: window.location.href
+        }).then(() => {
+          status.textContent = "Stats shared successfully.";
+        }).catch(() => {
+          status.textContent = "Sharing canceled.";
+        });
+      } else {
+        navigator.clipboard.writeText(shareText)
+          .then(() => {
+            status.textContent = "Stats copied to clipboard.";
+          })
+          .catch(() => {
+            status.textContent = "Unable to share or copy.";
+          });
+      }
+    }
+
+    function getDailyIndex(max) {
+      const date = new Date();
+      const seed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+      return seed % max;
+    }
+
+    function chooseOptions(correctChapter) {
+      const chapters = new Set();
+      chapters.add(correctChapter);
+      while (chapters.size < 4) {
+        const rand = Math.floor(Math.random() * 150) + 1;
+        chapters.add(rand);
+      }
+      return Array.from(chapters).sort(() => Math.random() - 0.5);
+    }
+
+    function handleChoice(selected, correct) {
+      const feedback = document.getElementById("feedback");
+      const stats = getStats();
+
+      if (stats.lastPlayed === todayKey) {
+        feedback.textContent = "You've already played today!";
+        return;
+      }
+
+      selected = parseInt(selected);
+      stats.picks[selected] = (stats.picks[selected] || 0) + 1;
+
+      if (selected === correct) {
+        feedback.textContent = "Correct!";
+        stats.correct += 1;
+        stats.streak += 1;
+        stats.correctByPsalm[correct] = (stats.correctByPsalm[correct] || 0) + 1;
+      } else {
+        feedback.textContent = `Incorrect. The correct answer was Psalm ${correct}.`;
+        stats.streak = 0;
+        stats.wrongGuesses[selected] = (stats.wrongGuesses[selected] || 0) + 1;
+        stats.picks[correct] = (stats.picks[correct] || 0);
+      }
+
+      stats.lastPlayed = todayKey;
+      stats.totalDays = (stats.totalDays || 0) + 1;
+      saveStats(stats);
+    }
+
+    function initGame() {
+      fetch("static/data/kjv.txt")
+        .then(res => res.text())
+        .then(text => {
+          verses = text.split("\n")
+            .filter(line => line.startsWith("Psalm"))
+            .map(line => {
+              const match = line.match(/^Psalms? (\d+:\d+)\s+(.*)$/);
+              return match ? { chapter: parseInt(match[1].split(":")[0]), verse: match[2] } : null;
+            })
+            .filter(Boolean);
+
+          const index = getDailyIndex(verses.length);
+          const { chapter, verse } = verses[index];
+
+          document.getElementById("verse").textContent = `"${verse}"`;
+
+          const options = chooseOptions(chapter);
+          const optionsDiv = document.getElementById("options");
+          optionsDiv.innerHTML = "";
+          options.forEach(opt => {
+            const btn = document.createElement("button");
+            btn.textContent = `Psalm ${opt}`;
+            btn.className = "bg-neutral-200 text-neutral-900 px-4 py-2 rounded hover:bg-neutral-300";
+            btn.onclick = () => handleChoice(opt, chapter);
+            optionsDiv.appendChild(btn);
+          });
+        });
+    }
+
+    initGame();
+  </script>
+</body>
+</html>
