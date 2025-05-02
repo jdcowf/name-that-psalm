@@ -12,9 +12,9 @@
     <h1 class="text-3xl text-left font-semibold mb-4">Name That Psalm</h1>
 
     <div id="verse-container" class="bg-neutral-50 text-neutral-900 p-6 rounded shadow max-w-xl w-full text-center">
-      <p id="verse" class="text-xl italic mb-6">Loading...</p>
+      <p id="verse" class="text-xl italic mb-2">Loading...</p>
+      <p id="ref"> </p>
       <div id="options" class="flex flex-col gap-2"></div>
-      <p id="feedback" class="mt-4 font-bold"></p>
     </div>
 
     <button onclick="toggleStats()" class="mt-4 text-sm underline">Show Stats</button>
@@ -58,12 +58,9 @@
 
     function toggleStats() {
       const modal = document.getElementById("statsModal");
-      const isVisible = !modal.classList.contains("hidden");
-      if (isVisible) {
-        modal.classList.add("hidden");
-      } else {
+      modal.classList.toggle("hidden");
+      if (!modal.classList.contains("hidden")) {
         updateStatsPanel();
-        modal.classList.remove("hidden");
       }
     }
 
@@ -162,20 +159,6 @@
       return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
     }
 
-    function selectVerseByChapter(versesByChapter) {
-      const seed = getSeed();
-      const rng = mulberry32(seed);
-      const chapterNumbers = Array.from(versesByChapter.keys());
-      const chapterIndex = Math.floor(rng() * chapterNumbers.length);
-      const selectedChapter = chapterNumbers[chapterIndex];
-      const verses = versesByChapter.get(selectedChapter);
-      const verseIndex = Math.floor(rng() * verses.length);
-      return {
-        chapter: selectedChapter,
-        verse: verses[verseIndex]
-      };
-    }
-
     function chooseOptions(correctChapter) {
       const seed = getSeed();
       const rng = mulberry32(seed + 1);
@@ -188,12 +171,42 @@
       return Array.from(options).sort((a, b) => rng() - 0.5);
     }
 
+    function highlightAnswers(selected, correct) {
+      const buttons = document.querySelectorAll("#options button");
+      buttons.forEach(btn => {
+        const chapter = parseInt(btn.textContent.replace("Psalm ", ""));
+        if (chapter === correct) { 
+          btn.classList.add("bg-green-600", "text-white");
+        }
+        if (selected && chapter === selected && selected !== correct) {
+          btn.classList.add("bg-red-600", "text-white");
+        }
+        btn.disabled = true;
+      });
+    }
+
+    function appendReference(ref) {
+      if (document.getElementById("verseRef")) return;
+      const refEl = document.createElement("div");
+      refEl.id = "verseRef";
+      refEl.className = "text-right text-sm text-neutral-400 mt-2 text-xl italic mb-6";
+
+      const link = document.createElement("a");
+      link.href = `https://www.biblegateway.com/passage/?search=${encodeURIComponent(ref)}&version=KJV`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.className = "hover:underline";
+      link.textContent = `${ref} (KJV)`;
+
+      refEl.appendChild(link);
+      document.getElementById("ref").replaceWith(refEl);
+    }
+
     function handleChoice(selected, correct) {
-      const feedback = document.getElementById("feedback");
       const stats = getStats();
 
       if (stats.lastPlayed === todayKey) {
-        feedback.textContent = "You've already played today!";
+        highlightAnswers(stats.selectedToday, correct);
         return;
       }
 
@@ -201,12 +214,10 @@
       stats.picks[selected] = (stats.picks[selected] || 0) + 1;
 
       if (selected === correct) {
-        feedback.textContent = "Correct!";
         stats.correct += 1;
         stats.streak += 1;
         stats.correctByPsalm[correct] = (stats.correctByPsalm[correct] || 0) + 1;
       } else {
-        feedback.textContent = `Incorrect. The correct answer was Psalm ${correct}.`;
         stats.streak = 0;
         stats.wrongGuesses[selected] = (stats.wrongGuesses[selected] || 0) + 1;
         stats.picks[correct] = (stats.picks[correct] || 0);
@@ -214,7 +225,9 @@
 
       stats.lastPlayed = todayKey;
       stats.totalDays = (stats.totalDays || 0) + 1;
+      stats.selectedToday = selected;
       saveStats(stats);
+      highlightAnswers(selected, correct);
     }
 
     function initGame() {
@@ -222,21 +235,37 @@
         .then(res => res.text())
         .then(text => {
           const versesByChapter = new Map();
-          text.split("\n")
-            .filter(line => line.startsWith("Psalm"))
-            .forEach(line => {
-              const match = line.match(/^Psalms? (\d+:\d+)\s+(.*)$/);
-              if (match) {
-                const [chStr, verseText] = [match[1].split(":")[0], match[2]];
-                const chapter = parseInt(chStr);
-                if (!versesByChapter.has(chapter)) {
-                  versesByChapter.set(chapter, []);
-                }
-                versesByChapter.get(chapter).push(verseText);
-              }
-            });
 
-          const { chapter, verse } = selectVerseByChapter(versesByChapter);
+          const allVerses = text
+            .split("\n")
+            .filter(line => line.startsWith("Psalm"))
+            .map(line => {
+              const match = line.match(/^Psalms?\s+(\d+):(\d+)\s+(.*)$/);
+              if (!match) return null;
+              const chapter = parseInt(match[1]);
+              const verseNum = parseInt(match[2]);
+              const verseText = match[3];
+              return { chapter, verseNum, text: verseText };
+            })
+            .filter(Boolean);
+
+          allVerses.forEach(({ chapter, verseNum, text }) => {
+            if (!versesByChapter.has(chapter)) {
+              versesByChapter.set(chapter, []);
+            }
+            versesByChapter.get(chapter).push({ verseNum, text });
+          });
+
+          const seed = getSeed();
+          const rng = mulberry32(seed);
+          const chapterNumbers = Array.from(versesByChapter.keys());
+          const chapterIndex = Math.floor(rng() * chapterNumbers.length);
+          const chapter = chapterNumbers[chapterIndex];
+          const verses = versesByChapter.get(chapter);
+          const verseIndex = Math.floor(rng() * verses.length);
+          const { verseNum, text: verse } = verses[verseIndex];
+          const fullRef = `Psalm ${chapter}:${verseNum}`;
+
           document.getElementById("verse").textContent = `"${verse}"`;
 
           const options = chooseOptions(chapter);
@@ -249,6 +278,19 @@
             btn.onclick = () => handleChoice(opt, chapter);
             optionsDiv.appendChild(btn);
           });
+
+          const stats = getStats();
+          if (stats.lastPlayed === todayKey && stats.selectedToday != null) {
+            highlightAnswers(stats.selectedToday, chapter);
+            appendReference(fullRef);
+          } else {
+            // Append reference only after playing
+            const originalHandle = handleChoice;
+            handleChoice = function(selected, correct) {
+              originalHandle(selected, correct);
+              appendReference(fullRef);
+            };
+          }
         });
     }
 
