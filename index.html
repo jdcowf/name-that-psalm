@@ -259,7 +259,12 @@ if (selected === correct) {
       stats.selectedToday = selected;
       saveStats(stats);
       highlightAnswers(selected, correct);
+      appendReference(todayReference);
+
     }
+
+let todayReference = "";
+
 
     function initGame() {
       fetch("static/data/kjv.txt")
@@ -296,6 +301,8 @@ if (selected === correct) {
           const verseIndex = Math.floor(rng() * verses.length);
           const { verseNum, text: verse } = verses[verseIndex];
           const fullRef = `Psalm ${chapter}:${verseNum}`;
+          todayReference = fullRef;
+
 
           document.getElementById("verse").textContent = `"${verse}"`;
 
@@ -314,15 +321,9 @@ if (selected === correct) {
           if (stats.lastPlayed === todayKey && stats.selectedToday != null) {
             highlightAnswers(stats.selectedToday, chapter);
             appendReference(fullRef);
-          } else {
-            // Append reference only after playing
-            const originalHandle = handleChoice;
-            handleChoice = function(selected, correct) {
-              originalHandle(selected, correct);
-              appendReference(fullRef);
-            };
           }
         });
+       );
     }
 
     initGame();
