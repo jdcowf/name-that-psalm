@@ -50,18 +50,14 @@
 
     function getStats() {
       return JSON.parse(localStorage.getItem(statsKey)) || {
-  correct: 0,
-  streak: 0,
-  winStreak: 0,
-  lastWinDate: "",
-  lastPlayed: "",
-  totalDays: 0,
-  picks: {},
-  correctByPsalm: {},
-  wrongGuesses: {}
-};
-
-
+        correct: 0,
+        streak: 0,
+        lastPlayed: "",
+        totalDays: 0,
+        picks: {},
+        correctByPsalm: {},
+        wrongGuesses: {}
+      };
     }
 
     function saveStats(stats) {
@@ -116,9 +112,8 @@
 
       const url = window.location.href;
       shareText = `Name That Psalm Stats\n` +
-                  `Correct: ${s.correct}\n` + 
-                  `Current Streak: ${s.streak}\n` +
-                  `Best Streak: ${s.winStreak || 0}\n` +
+                  `Correct: ${s.correct}\n` +
+                  `Streak: ${s.streak}\n` +
                   `Days Played: ${s.totalDays || 0}\n` +
                   `Best Known: ${hasCorrect ? `Psalm ${bestPsalm}` : 'N/A'}\n` +
                   `Least Known: ${hasWrong ? `Psalm ${leastPsalm}` : 'N/A'}\n` +
@@ -126,14 +121,12 @@
 
       const content = document.getElementById("statsContent");
       content.innerHTML = `
-  <p><strong>Total Correct:</strong> ${s.correct}</p>
-  <p><strong>Current Streak:</strong> ${s.streak}</p>
-  <p><strong>Best Streak:</strong> ${s.winStreak || 0}</p>
-  <p><strong>Total Days Played:</strong> ${s.totalDays || 0}</p>
-  <p><strong>Best Known Psalm:</strong> ${hasCorrect ? `Psalm ${bestPsalm} (${bestScore} correct)` : "N/A"}</p>
-  <p><strong>Least Known Psalm:</strong> ${hasWrong ? `Psalm ${leastPsalm}` : "N/A"}</p>
-`;
-
+        <p><strong>Total Correct:</strong> ${s.correct}</p>
+        <p><strong>Current Streak:</strong> ${s.streak}</p>
+        <p><strong>Total Days Played:</strong> ${s.totalDays || 0}</p>
+        <p><strong>Best Known Psalm:</strong> ${hasCorrect ? `Psalm ${bestPsalm} (${bestScore} correct)` : "N/A"}</p>
+        <p><strong>Least Known Psalm:</strong> ${hasWrong ? `Psalm ${leastPsalm}` : "N/A"}</p>
+      `;
       document.getElementById("shareStatus").textContent = "";
     }
 
@@ -228,43 +221,22 @@
       selected = parseInt(selected);
       stats.picks[selected] = (stats.picks[selected] || 0) + 1;
 
-if (selected === correct) {
-  feedback.textContent = "Correct!";
-  stats.correct += 1;
-  stats.streak += 1;
-  stats.correctByPsalm[correct] = (stats.correctByPsalm[correct] || 0) + 1;
-
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = yesterday.toISOString().split("T")[0];
-
-  if (stats.lastWinDate === yesterdayKey) {
-    stats.winStreak += 1;
-  } else {
-    stats.winStreak = 1;
-  }
-
-  stats.lastWinDate = todayKey;
-} else {
-  feedback.textContent = `Incorrect. The correct answer was Psalm ${correct}.`;
-  stats.streak = 0;
-  stats.winStreak = 0;
-  stats.wrongGuesses[selected] = (stats.wrongGuesses[selected] || 0) + 1;
-  stats.picks[correct] = (stats.picks[correct] || 0);
-}
-
+      if (selected === correct) {
+        stats.correct += 1;
+        stats.streak += 1;
+        stats.correctByPsalm[correct] = (stats.correctByPsalm[correct] || 0) + 1;
+      } else {
+        stats.streak = 0;
+        stats.wrongGuesses[selected] = (stats.wrongGuesses[selected] || 0) + 1;
+        stats.picks[correct] = (stats.picks[correct] || 0);
+      }
 
       stats.lastPlayed = todayKey;
       stats.totalDays = (stats.totalDays || 0) + 1;
       stats.selectedToday = selected;
       saveStats(stats);
       highlightAnswers(selected, correct);
-      appendReference(todayReference);
-
     }
-
-let todayReference = "";
-
 
     function initGame() {
       fetch("static/data/kjv.txt")
@@ -301,8 +273,6 @@ let todayReference = "";
           const verseIndex = Math.floor(rng() * verses.length);
           const { verseNum, text: verse } = verses[verseIndex];
           const fullRef = `Psalm ${chapter}:${verseNum}`;
-          todayReference = fullRef;
-
 
           document.getElementById("verse").textContent = `"${verse}"`;
 
@@ -321,9 +291,15 @@ let todayReference = "";
           if (stats.lastPlayed === todayKey && stats.selectedToday != null) {
             highlightAnswers(stats.selectedToday, chapter);
             appendReference(fullRef);
+          } else {
+            // Append reference only after playing
+            const originalHandle = handleChoice;
+            handleChoice = function(selected, correct) {
+              originalHandle(selected, correct);
+              appendReference(fullRef);
+            };
           }
         });
-       );
     }
 
     initGame();
