@@ -189,9 +189,11 @@
       buttons.forEach(btn => {
         const chapter = parseInt(btn.textContent.replace("Psalm ", ""));
         if (chapter === correct) { 
+          btn.classList.remove("bg-neutral-200")
           btn.classList.add("bg-green-600", "text-white");
         }
         if (selected && chapter === selected && selected !== correct) {
+                  btn.classList.remove("bg-neutral-200")
           btn.classList.add("bg-red-600", "text-white");
         }
         btn.disabled = true;
