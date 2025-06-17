@@ -1,0 +1,17 @@
+{
+  "name": "Name That Psalm",
+  "short_name": "Psalm Game",
+  "description": "Test your knowledge of the Psalms with this daily game.",
+  "icons": [
+    {
+      "src": "static/images/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "index.html",
+  "display": "standalone",
+  "theme_color": "#fafafa",
+  "background_color": "#0a0a0a"
+}
