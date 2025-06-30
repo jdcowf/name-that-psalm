@@ -171,7 +171,7 @@
     }
 
     function getSeed() {
-      const date = new Date();
+      const date = new Date(new Date().toISOString());
       return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
     }
 
