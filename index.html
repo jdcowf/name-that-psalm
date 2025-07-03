@@ -52,8 +52,14 @@
   </div>
 
   <script>
+  
+   function getSeed() {
+      const date = new Date();
+      return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+    }
+    
     const statsKey = "psalm_game_stats";
-    let todayKey = new Date().toISOString().split("T")[0]; // UTC date
+    const todaySeed = getSeed(); // UTC date
     let shareText = "";
 
     function getStats() {
@@ -170,11 +176,6 @@
       };
     }
 
-    function getSeed() {
-      const date = new Date();
-      return date.getUTCFullYear() * 10000 + (date.getUTCMonth() + 1) * 100 + date.getUTCDate();
-    }
-
     function chooseOptions(correctChapter) {
       const seed = getSeed();
       const rng = mulberry32(seed + 1);
@@ -223,7 +224,7 @@
     function handleChoice(selected, correct) {
       const stats = getStats();
 
-      if (stats.lastPlayed === todayKey) {
+      if (stats.lastPlayed === todaySeed) {
         highlightAnswers(stats.selectedToday, correct);
         return;
       }
@@ -241,7 +242,7 @@
         stats.picks[correct] = (stats.picks[correct] || 0);
       }
 
-      stats.lastPlayed = todayKey;
+      stats.lastPlayed = todaySeed;
       stats.totalDays = (stats.totalDays || 0) + 1;
       stats.selectedToday = selected;
       saveStats(stats);
@@ -274,7 +275,7 @@
             versesByChapter.get(chapter).push({ verseNum, text });
           });
 
-          const seed = getSeed();
+          const seed = todaySeed;
           const rng = mulberry32(seed);
           const chapterNumbers = Array.from(versesByChapter.keys());
           const chapterIndex = Math.floor(rng() * chapterNumbers.length);
@@ -298,7 +299,7 @@
           });
 
           const stats = getStats();
-          if (stats.lastPlayed === todayKey && stats.selectedToday != null) {
+          if (stats.lastPlayed === todaySeed && stats.selectedToday != null) {
             highlightAnswers(stats.selectedToday, chapter);
             appendReference(fullRef);
           } else {
