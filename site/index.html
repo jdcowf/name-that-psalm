@@ -225,12 +225,13 @@
 
     function appendReference(ref) {
       if (document.getElementById("verseRef")) return;
+      const refBookAndChap = ref.split(":")[0]
       const refEl = document.createElement("div");
       refEl.id = "verseRef";
       refEl.className = "text-right text-sm text-neutral-400 mt-2 text-xl italic mb-6";
 
       const link = document.createElement("a");
-      link.href = `https://www.biblegateway.com/passage/?search=${encodeURIComponent(ref)}&version=KJV`;
+      link.href = `https://www.biblegateway.com/passage/?search=${encodeURIComponent(refBookAndChap}&version=KJV`;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       link.className = "hover:underline";
