@@ -53,7 +53,7 @@
 
   <script>
     const statsKey = "psalm_game_stats";
-    let todayKey = new Date().toISOString().split("T")[0];
+    let todayKey = new Date().toISOString().split("T")[0]; // UTC date
     let shareText = "";
 
     function getStats() {
@@ -171,8 +171,8 @@
     }
 
     function getSeed() {
-      const date = new Date(new Date().toISOString());
-      return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+      const date = new Date();
+      return date.getUTCFullYear() * 10000 + (date.getUTCMonth() + 1) * 100 + date.getUTCDate();
     }
 
     function chooseOptions(correctChapter) {
